@@ -1,2 +1,2 @@
 # Discord-LevelSystem
-Discod用のレベルシステムです。
+Discod用のレベルシステムBOTです。
