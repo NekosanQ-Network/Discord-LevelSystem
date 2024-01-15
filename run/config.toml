@@ -1,0 +1,10 @@
+# クライアントID
+clientId = "1196106714475417730"
+# 開発用サーバーID
+developerGuildId = "954075863505309767"
+# 使用するサーバーID
+generalGuildId = "1189556242973196359"
+# BOTのカラーコード
+botColor = "0xb9d98b"
+# エラーカラーコード
+errorColor = "0xf06060"

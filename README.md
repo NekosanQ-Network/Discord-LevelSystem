@@ -1,1 +1,2 @@
-a
+# Discord-LevelSystem
+Discod用のレベルシステムです。
