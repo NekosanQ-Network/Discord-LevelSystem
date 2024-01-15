@@ -25,10 +25,11 @@ module.exports = {
         }
 
         const xp: number = Math.floor(Math.random() * (20 - 1 + 1)) +  1;
-
-
-        console.log(`取得した経験値: ${xp}`);
-
+        if (bonus <= 10)
+        {
+            console.log(`取得した経験値: ${xp}`);
+        }
+        
         coolDownMap.set(message.author.id, now); // ここで登録
 
         setTimeout(() => {
