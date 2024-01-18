@@ -36,8 +36,7 @@ module.exports = {
         let xp: number | undefined = users.get(message.author.id);  // <-- テストコード。 自分が持っている経験値
         if (!xp) { // <-- データがない場合は新規作成。(もうちょっといい処理があるんだけど、思いつかないので一旦放置。)
             users.set(message.author.id, 1);
-        }
-        else {
+        } else {
             if (bonusCounter) {
                 bonusMap.set(message.author.id, bonusCounter + 1);
                 if (bonusCounter < 10) {
