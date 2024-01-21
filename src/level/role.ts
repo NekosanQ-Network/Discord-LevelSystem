@@ -10,7 +10,7 @@ export async function grantRole(message: Message, xp: number) : Promise<void> {
     if (member?.roles.highest.position! > bot?.roles.highest.position!) { // NOTE: Botより高いやつにはあげない
         console.log(`あげようとしたやつ、Botより高いステージにいるから、役職あげないよ。帰れ。`);
         return;
-    }
+    };
 
     if (xp >= 1000000 && !member?.roles.cache.has(config.roleIds[4])) { // "猫神"
         member?.roles.add(config.roleIds[4]);
@@ -33,7 +33,7 @@ export async function deprivationRole(message: Message, xp: number) : Promise<vo
     if (member?.roles.highest.position! > bot?.roles.highest.position!) { // NOTE: Botより高いやつからは奪わない
         console.log(`奪おうとしたやつ、Botより高いステージにいるから、役職奪えないよ。帰れ。`);
         return;
-    }
+    };
 
     if (xp < 1000000 && member?.roles.cache.has(config.roleIds[4])) {
         member?.roles.remove(config.roleIds[4]);
@@ -43,5 +43,5 @@ export async function deprivationRole(message: Message, xp: number) : Promise<vo
         member?.roles.remove(config.roleIds[2]);
     } else if (xp < 50000 && member?.roles.cache.has(config.roleIds[1])) {
         member?.roles.remove(config.roleIds[1]);
-    }
+    };
 }
