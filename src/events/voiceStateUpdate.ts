@@ -1,12 +1,11 @@
 import { Events, VoiceState } from "discord.js";
+import { vcBonusMap, earnedXpMap, users } from "..";
 
 /**
     @type {string} ユーザーId
     @type {number} 接続した時間(UNIX TIME)
 */
 const vcConnectTimeMap = new Map<string, number>();
-
-const vcBonusExclusionMap = new Map<string, number>();
 
 module.exports = {
     name: Events.VoiceStateUpdate,
@@ -16,54 +15,52 @@ module.exports = {
         const userId = oldState ? oldState.id : newState ? newState.id : "";
         const vcConnectTime: number | undefined = vcConnectTimeMap.get(userId);
 
+        let xp: number | undefined = users.get(userId);  // <-- テストコード。 自分が持っている経験値
+        if (!xp) { // NOTE: データがない場合は新規作成。
+            users.set(userId, 0);
+        }
+
         try {
-            // 接続
             if (oldState.channel === null && newState.channel != null) {
-                console.log(`user_id: ${newState.id} が接続したよ。 unixTimeStamp: ${unixTimeStamp}`);
-                vcConnectTimeMap.set(newState.id, unixTimeStamp);
-            } else if (oldState.channel != null && newState.channel === null) {
-                console.log(`user_id: ${oldState.id} が切断したよ。`);
-
-               if (vcConnectTime) {
-                    console.log(`確認用: elapsed: ${unixTimeStamp - vcConnectTime}`);
-
-                    if (!vcBonusExclusionMap.get(oldState.id) && unixTimeStamp - vcConnectTime >= 600) { // 10分以上経過している場合　かつ　初回
-                        const xp = Math.floor((unixTimeStamp - vcConnectTime) / 10) - 60;
-
-                        console.log(`2倍ボーナス除外: ${xp}`);
-                        console.log(`2倍ボーナス対象: 60`);
-
-                        console.log(`user_id: ${userId} の獲得XP -> ${xp + 60 * 2}`);
-
-                        vcBonusExclusionMap.set(oldState.id, 1);
-                    } else {
-                        const xp = Math.floor((unixTimeStamp - vcConnectTime) / 10);
-                        console.log(`user_id: ${userId} の獲得XP -> ${xp}`);
-                    };
-               };
-
-            } else {
-                console.log(`user_id: ${newState.id}, move from ${oldState.channelId} to ${newState.channelId}`);
-
-                if (vcConnectTime) {
-                    if (!vcBonusExclusionMap.get(oldState.id) && unixTimeStamp - vcConnectTime >= 600) { // 10分以上経過している場合 かつ 初回
-                        const xp = Math.floor((unixTimeStamp - vcConnectTime) / 10) - 60;
-
-                        console.log(`2倍ボーナス除外: ${xp}`);
-                        console.log(`2倍ボーナス対象: 60`);
-
-                        console.log(`user_id: ${userId} の獲得XP -> ${xp + 60 * 2}`);
-
-                        vcBonusExclusionMap.set(oldState.id, 1);
-                    } else {
-                        const xp = Math.floor((unixTimeStamp - vcConnectTime) / 10);
-                        console.log(`user_id: ${userId} の獲得XP -> ${xp}`);
-                    };
+                vcConnectTimeMap.set(userId, unixTimeStamp);
+                console.log(`[VC接続] user_id: ${userId}, unixTimeStamp(JoinedTime): ${unixTimeStamp}`);
+            } else if (oldState.channel != null && newState.channel === null && vcConnectTime) {
+                if (!vcBonusMap.get(userId) && unixTimeStamp - vcConnectTime >= 600) { // NOTE: 10分以上経過 かつ その日が初回
+                    grantXP(userId, vcConnectTime, unixTimeStamp, xp!, true);
+                } else {
+                    grantXP(userId, vcConnectTime, unixTimeStamp, xp!, false);
                 };
 
+                console.log(`[VC切断] user_id: ${userId}, unixTimeStamp(leftTime): ${unixTimeStamp}`);
+            } else if (oldState.channel != null && newState.channel != null && vcConnectTime) {
+                if (!vcBonusMap.get(userId) && unixTimeStamp - vcConnectTime >= 600) {
+                    grantXP(userId, vcConnectTime, unixTimeStamp, xp!, true);
+                } else {
+                    grantXP(userId, vcConnectTime, unixTimeStamp, xp!, false);
+                };
+
+                console.log(`[VC移動] user_id: ${userId}`);
             };
         } catch (error) {
             console.log(error);
         }
     }
 };
+// -----------------------------------------------------------------------------------------------------------
+// XP付与
+// -----------------------------------------------------------------------------------------------------------
+function grantXP(userId: string, joinedTime: number, leftTime: number, xp: number, isBonus: boolean) {
+    let earnExp = Math.floor((leftTime - joinedTime) / 10);
+    earnExp -= isBonus ? 60 : 0;           // ボーナス有効時 -60
+    let bonusExp = isBonus ? 60 * 2 : 0;   // ボーナス有効時 60 * 2
+
+    if (isBonus) {
+        vcBonusMap.set(userId, 1); // ボーナスを受け取れないようにする
+    }
+
+    const earnedEXP : number | undefined = earnedXpMap.get(userId); // その日稼いだ経験値
+    earnedXpMap.set(userId, (earnedEXP ? earnedEXP : 0) + earnExp + bonusExp);
+
+    users.set(userId, xp + earnExp + bonusExp);
+    console.log(`user_id: ${userId}, 獲得XP(計): ${earnExp + bonusExp}, 内訳(ボーナス対象外): ${earnExp}, 内訳(ボーナス対象): ${bonusExp}`);
+}
