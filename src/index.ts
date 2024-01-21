@@ -8,8 +8,11 @@ import cron from "node-cron";
 import { config } from "./utils/config";
 import { deprivationRole } from './level/role.js';
 
-// ボーナス受けた回数記録用
-export const bonusMap = new Map<string, number>();
+// ボーナス受けた回数記録用(メッセージ)
+export const messageBonusMap = new Map<string, number>();
+
+// ボーナスを受けた回数記録用(ボイス)
+export const vcBonusMap = new Map<string, number>();
 
 // 稼いだXPを記録
 export const earnedXpMap = new Map<string, number>();
@@ -77,30 +80,38 @@ for (const file of eventFiles) {
 cron.schedule("*/5 * * * *", async () => {
 	await periodicExecution();
 });
-
+// -----------------------------------------------------------------------------------------------------------
+// XP減少 / 役職剥奪 / ボーナス回数, その日稼いだXP記録 リセット
+// -----------------------------------------------------------------------------------------------------------
 async function periodicExecution() : Promise<void> {
 	try {
 		const guild = await client.guilds.fetch(config.generalGuildId);
-		Array.from(users.keys()).forEach(async (user) => {
+		for (const user of Array.from(users.keys())) {
 			const xp = users.get(user)!;
 			const get = earnedXpMap.get(user) ? earnedXpMap.get(user)! : 0;
 
 			const roles = (await guild.members.fetch(user)).roles;
-			if (roles.cache.has(config.roleIds[2])) {
-				if (2500 > get) {
-					const dec = 2500 - get;
-					console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${dec}, 減らしたあと:${xp - dec}`);
-					users.set(user, xp - dec);
-					await deprivationRole(user, guild, users.get(user)!);
-				}
-				else {
-					console.log(`user_id: ${user} 減らさない`);
-				};
+			if (roles.cache.has(config.roleIds[2]) && 2500 > get) { // NOTE: 常連 かつ 本日稼いだ分が2500未満
+				const dec = 2500 - get;
+				console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${dec}, 減らしたあと:${xp - dec}`);
+				users.set(user, xp - dec);
+				await deprivationRole(user, guild, users.get(user)!);
+			} else if (roles.cache.has(config.roleIds[3]) && 5000 > get) {  // NOTE: 達人 
+				const dec = 5000 - get;
+				console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${dec}, 減らしたあと:${xp - dec}`);
+				users.set(user, xp - dec);
+				await deprivationRole(user, guild, users.get(user)!);
+			} else if (roles.cache.has(config.roleIds[4]) && 10000 > get) { // NOTE: 猫神
+				const dec = 10000 - get;
+				console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${dec}, 減らしたあと:${xp - dec}`);
+				users.set(user, xp - dec);
+				await deprivationRole(user, guild, users.get(user)!);
 			};
-		});
+		}
 
-		bonusMap.clear(); 		// ボーナス制限リセット
-		earnedXpMap.clear();	// その日稼いだ分をリセット
+		messageBonusMap.clear(); 	// メッセージ ボーナス制限 リセット
+		vcBonusMap.clear();			// VC ボーナス制限 リセット
+		earnedXpMap.clear();		// その日稼いだ分をリセット
 	}
 	catch (ex) {
 		console.log(ex);
