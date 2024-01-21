@@ -1,4 +1,4 @@
-import { Message } from "discord.js";
+import { Guild, Message } from "discord.js";
 import { config } from "../utils/config";
 
 // -----------------------------------------------------------------------------------------------------------
@@ -27,9 +27,9 @@ export async function grantRole(message: Message, xp: number) : Promise<void> {
 // -----------------------------------------------------------------------------------------------------------
 // 基準を下回ったときに、役職を剥奪する
 // -----------------------------------------------------------------------------------------------------------
-export async function deprivationRole(message: Message, xp: number) : Promise<void> {
-    const member = await message.guild?.members.fetch(message.author.id);
-    const bot = await message.guild?.members.fetch(config.clientId);
+export async function deprivationRole(userId: string, guild: Guild, xp: number) : Promise<void> {
+    const member = await guild?.members.fetch(userId);
+    const bot = await guild?.members.fetch(config.clientId);
     if (member?.roles.highest.position! > bot?.roles.highest.position!) { // NOTE: Botより高いやつからは奪わない
         console.log(`奪おうとしたやつ、Botより高いステージにいるから、役職奪えないよ。帰れ。`);
         return;
