@@ -109,9 +109,12 @@ async function periodicExecution() : Promise<void> {
 			};
 		}
 
-		messageBonusMap.clear(); 	// メッセージ ボーナス制限 リセット
-		vcBonusMap.clear();			// VC ボーナス制限 リセット
-		earnedXpMap.clear();		// その日稼いだ分をリセット
+		// リセット
+		messageBonusMap.clear();	// メッセーじ
+		vcBonusMap.clear();			// VC
+		earnedXpMap.clear();		// その日稼いだXP
+
+		console.log(`リセットした！`);
 	}
 	catch (ex) {
 		console.log(ex);
