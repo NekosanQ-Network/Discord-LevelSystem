@@ -26,13 +26,16 @@ module.exports = {
             return;
         };
 
-        let xp: number | undefined = users.get(message.author.id);  // <-- テストコード。 自分が持っている経験値
-        if (!xp) { // NOTE: データがない場合は新規作成。
-            users.set(message.author.id, 1);
-            console.log(`user_id=${message.author.id} のデータを作成しました。`);
-            grantXP(message, users.get(message.author.id)!);
+        const xp: number | undefined = users.get(message.author.id);  // <-- テストコード。 自分が持っている経験値
+        if (!xp) {
+            users.set(message.author.id, 6000);
+            grantXP(message, users.get(message.author.id)! - 1, 0, true);
         } else {
-            grantXP(message, xp);
+            if (messageBonusMap.get(message.author.id)! >= 10) {
+                grantXP(message, xp, 0, false);
+            } else {
+                grantXP(message, xp, messageBonusMap.get(message.author.id) ? messageBonusMap.get(message.author.id)! : 0, true);
+            };
         };
 
         coolDownMap.set(message.author.id, now); // NOTE: クールダウンの処理 5秒
@@ -45,44 +48,21 @@ module.exports = {
 // -----------------------------------------------------------------------------------------------------------
 // XP付与
 // -----------------------------------------------------------------------------------------------------------
-function grantXP(message: Message, xp: number) {
-    const obtainXp: number = Math.floor(Math.random() * (20 - 1 + 1)) +  1; // 獲得XP
-    const bonusCounter: number | undefined = messageBonusMap.get(message.author.id); // <-- ボーナスを受け取った回数
-    const earnedXp: number | undefined = earnedXpMap.get(message.author.id);         // その日稼いだXP
-    let get: number = 0;
-
-    if (bonusCounter) { // NOTE: ボーナス関連データあり
-        messageBonusMap.set(message.author.id, bonusCounter + 1);
-        if (bonusCounter < 10) {
-            xp += obtainXp * 5;
-            get = obtainXp * 5;
-
-            console.log(`獲得した経験値: ${obtainXp * 5}`);
-            console.log(`[ボーナステスト] user_id=${message.author.id} 回数更新, 現在: ${messageBonusMap.get(message.author.id)}`);
-        } else {
-            xp += obtainXp;
-            get = obtainXp;
-            console.log(`獲得した経験値: ${obtainXp}`);
-        };
-    } else { // NOTE: ボーナスカウンタ作成
-        messageBonusMap.set(message.author.id, 1); 
-        console.log(`user_id=${message.author.id} のカウントデータを作成したよ`);
-
-        xp += obtainXp * 5;
-        get = obtainXp * 5;
-        console.log(`獲得した経験値: ${obtainXp * 5}`);
+function grantXP(message: Message, xp: number, bonusCount: number, isBonus: boolean) {
+    let earnExp: number = Math.floor(Math.random() * 20) + 1;   // 獲得経験値。 1 - 20
+    earnExp = isBonus ? earnExp * 5 : earnExp;                  // ボーナス有効時は5倍
+    
+    if (isBonus) {
+        messageBonusMap.set(message.author.id, bonusCount + 1);
         console.log(`[ボーナステスト] user_id=${message.author.id} 回数更新, 現在: ${messageBonusMap.get(message.author.id)}`);
     };
 
-    if (!earnedXp) {
-        earnedXpMap.set(message.author.id, 1 + get)
-    } else {
-        earnedXpMap.set(message.author.id, earnedXp + get);
-    };
+    const earnedEXP : number | undefined = earnedXpMap.get(message.author.id); // その日稼いだ経験値
+    earnedXpMap.set(message.author.id, (earnedEXP ? earnedEXP : 0) + earnExp);
 
-    users.set(message.author.id, xp);
+    users.set(message.author.id, xp + earnExp);
     grantRole(message, xp);
 
     console.log(`${message.author.id} の今日獲得したXP: ${earnedXpMap.get(message.author.id)!}`)
-    console.log(`${message.author.id} の現在持っているXP: ${xp}`);
+    console.log(`${message.author.id} の現在持っているXP: ${xp + earnExp}`);
 }
