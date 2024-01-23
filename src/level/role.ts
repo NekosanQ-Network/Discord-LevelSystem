@@ -1,47 +1,56 @@
 import { Guild, Message } from "discord.js";
 import { config } from "../utils/config";
 
-// -----------------------------------------------------------------------------------------------------------
-// 特定XPに達したときに、それに応じた役職を付与する
-// -----------------------------------------------------------------------------------------------------------
+/**
+ * @type {number[]} 基準となるレベル
+ */
+const levels :number[] = [100, 50000, 200000, 500000, 1000000];
+
+/**
+ * @type {string[]} 使用する役職
+ */
+const roles : string[] = config.roleIds.slice(0, 5).reverse();
+
+/**
+ * 実行ユーザーの経験値が一定基準を満たしたとき、それに応じた役職を付与する
+ * @param message メッセージデータ
+ * @param xp 実行ユーザーの経験値
+ * @returns なし
+ */
 export async function grantRole(message: Message, xp: number) : Promise<void> {
     const member = await message.guild?.members.fetch(message.author.id);
     const bot = await message.guild?.members.fetch(config.clientId);
     if (member?.roles.highest.position! > bot?.roles.highest.position!) { // NOTE: Botより高いやつにはあげない
-        console.log(`あげようとしたやつ、Botより高いステージにいるから、役職あげないよ。帰れ。`);
+        console.log(`user_id: ${message.author.id} -> 役職付与できない。`);
         return;
     };
 
-    if (xp >= 1000000 && !member?.roles.cache.has(config.roleIds[4])) { // "猫神"
-        member?.roles.add(config.roleIds[4]);
-    } else if (xp >= 500000 && !member?.roles.cache.has(config.roleIds[3])) { // "達人"
-        member?.roles.add(config.roleIds[3]);
-    } else if (xp >= 200000 && !member?.roles.cache.has(config.roleIds[2])) { // "常連"
-        member?.roles.add(config.roleIds[2]);
-    } else if (xp >= 50000 && !member?.roles.cache.has(config.roleIds[1])) { // "新規卒"
-        member?.roles.add(config.roleIds[1]);
-    } else if (xp >= 100 && !member?.roles.cache.has(config.roleIds[0])) { // "新規"
-        member?.roles.add(config.roleIds[0]);
-    };
+    for (let i = 0; i < levels.length; i++) {
+        if (xp >= levels[i] && !member?.roles.cache.has(config.roleIds[i])) {
+            member?.roles.add(roles[i]);
+            break;
+        };
+    }
 }
-// -----------------------------------------------------------------------------------------------------------
-// 基準を下回ったときに、役職を剥奪する
-// -----------------------------------------------------------------------------------------------------------
+
+/**
+ * 実行ユーザーの経験値が一定基準より下回ったとき、役職を剥奪する
+ * @param userId 実行ユーザーID
+ * @param guild 実行サーバID
+ * @param xp 実行ユーザーの経験値
+ * @returns なし
+ */
 export async function deprivationRole(userId: string, guild: Guild, xp: number) : Promise<void> {
     const member = await guild?.members.fetch(userId);
     const bot = await guild?.members.fetch(config.clientId);
     if (member?.roles.highest.position! > bot?.roles.highest.position!) { // NOTE: Botより高いやつからは奪わない
-        console.log(`奪おうとしたやつ、Botより高いステージにいるから、役職奪えないよ。帰れ。`);
+        console.log(`user_id: ${userId} -> 役職剥奪できない。`);
         return;
     };
 
-    if (xp < 1000000 && member?.roles.cache.has(config.roleIds[4])) {
-        member?.roles.remove(config.roleIds[4]);
-    } else if (xp < 500000 && member?.roles.cache.has(config.roleIds[3])) {
-        member?.roles.remove(config.roleIds[3]);
-    } else if (xp < 200000 && member?.roles.cache.has(config.roleIds[2])) {
-        member?.roles.remove(config.roleIds[2]);
-    } else if (xp < 50000 && member?.roles.cache.has(config.roleIds[1])) {
-        member?.roles.remove(config.roleIds[1]);
-    };
+    for (let i = 0; i < levels.length; i++) {
+        if (levels[i] > xp && member?.roles.cache.has(config.roleIds[i])) {
+            member?.roles.remove(config.roleIds[i]);
+        };
+    }
 }
