@@ -20,6 +20,16 @@ export const earnedXpMap = new Map<string, number>();
 // テストコードです。 経験値を格納するのに使用します。
 export const users = new Map<string, number>();
 
+/**
+ * @type {number[]} 経験値獲得のノルマ
+ */
+const levelsNorma: number[] = [10000, 5000, 2500];
+
+/**
+ * @type {string[]} 使用する役職
+*/
+const roles : string[] = config.roleIds.slice(2, 5).reverse();
+
 //.envファイルを読み込む
 dotenv.config();
 
@@ -90,23 +100,16 @@ async function periodicExecution() : Promise<void> {
 			const xp = users.get(user)!;
 			const get = earnedXpMap.get(user) ? earnedXpMap.get(user)! : 0;
 
-			const roles = (await guild.members.fetch(user)).roles;
-			if (roles.cache.has(config.roleIds[2]) && 2500 > get) { // NOTE: 常連 かつ 本日稼いだ分が2500未満
-				const dec = 2500 - get;
-				console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${dec}, 減らしたあと:${xp - dec}`);
-				users.set(user, xp - dec);
-				await deprivationRole(user, guild, users.get(user)!);
-			} else if (roles.cache.has(config.roleIds[3]) && 5000 > get) {  // NOTE: 達人 
-				const dec = 5000 - get;
-				console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${dec}, 減らしたあと:${xp - dec}`);
-				users.set(user, xp - dec);
-				await deprivationRole(user, guild, users.get(user)!);
-			} else if (roles.cache.has(config.roleIds[4]) && 10000 > get) { // NOTE: 猫神
-				const dec = 10000 - get;
-				console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${dec}, 減らしたあと:${xp - dec}`);
-				users.set(user, xp - dec);
-				await deprivationRole(user, guild, users.get(user)!);
-			};
+			const _roles = (await guild.members.fetch(user)).roles;
+			for (let i = 0; i < levelsNorma.length; i++) {
+				if (levelsNorma[i] > get && _roles.cache.has(roles[i])) {
+					const decrease = levelsNorma[i] - get; // 目標 - 本日獲得分 = 減らすXP
+					users.set(user, xp - decrease);
+					await deprivationRole(user, roles[i], guild, users.get(user)!);
+
+					console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${decrease}, 減らしたあと:${xp - decrease}`);
+				};
+			}
 		}
 
 		// リセット
@@ -119,6 +122,6 @@ async function periodicExecution() : Promise<void> {
 	catch (ex) {
 		console.log(ex);
 	}
-}
+};
 
 client.login(process.env.DISCORD_TOKEN);
