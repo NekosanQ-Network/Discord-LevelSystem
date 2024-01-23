@@ -18,7 +18,7 @@ module.exports = {
         let xp: number | undefined = users.get(userId);  // <-- テストコード。 自分が持っている経験値
         if (!xp) { // NOTE: データがない場合は新規作成。
             users.set(userId, 0);
-        }
+        };
 
         try {
             if (oldState.channel === null && newState.channel != null) {
@@ -50,13 +50,13 @@ module.exports = {
 // XP付与
 // -----------------------------------------------------------------------------------------------------------
 function grantXP(userId: string, joinedTime: number, leftTime: number, xp: number, isBonus: boolean) {
-    let earnExp = Math.floor((leftTime - joinedTime) / 10);
+    let earnExp: number = Math.floor((leftTime - joinedTime) / 10);
     earnExp -= isBonus ? 60 : 0;           // ボーナス有効時 -60
-    let bonusExp = isBonus ? 60 * 2 : 0;   // ボーナス有効時 60 * 2
+    let bonusExp: number = isBonus ? 60 * 2 : 0;   // ボーナス有効時 60 * 2
 
     if (isBonus) {
         vcBonusMap.set(userId, 1); // ボーナスを受け取れないようにする
-    }
+    };
 
     const earnedEXP : number | undefined = earnedXpMap.get(userId); // その日稼いだ経験値
     earnedXpMap.set(userId, (earnedEXP ? earnedEXP : 0) + earnExp + bonusExp);
