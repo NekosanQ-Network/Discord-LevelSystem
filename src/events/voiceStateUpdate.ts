@@ -46,13 +46,18 @@ module.exports = {
         }
     }
 };
-// -----------------------------------------------------------------------------------------------------------
-// XP付与
-// -----------------------------------------------------------------------------------------------------------
-function grantXP(userId: string, joinedTime: number, leftTime: number, xp: number, isBonus: boolean) {
+/**
+ * 
+ * @param userId 実行ユーザーID
+ * @param joinedTime VC参加時刻(UNIX Time)
+ * @param leftTime  VC離脱時刻(UNIX Time)
+ * @param xp 実行ユーザー経験値
+ * @param isBonus ボーナス付与するか？
+ */
+function grantXP(userId: string, joinedTime: number, leftTime: number, xp: number, isBonus: boolean) :void {
     let earnExp: number = Math.floor((leftTime - joinedTime) / 10);
-    earnExp -= isBonus ? 60 : 0;           // ボーナス有効時 -60
-    let bonusExp: number = isBonus ? 60 * 2 : 0;   // ボーナス有効時 60 * 2
+    earnExp -= isBonus ? 60 : 0;                    // ボーナス有効時 -60
+    let bonusExp: number = isBonus ? 60 * 2 : 0;    // ボーナス有効時 60 * 2
 
     if (isBonus) {
         vcBonusMap.set(userId, 1); // ボーナスを受け取れないようにする
@@ -63,4 +68,4 @@ function grantXP(userId: string, joinedTime: number, leftTime: number, xp: numbe
 
     users.set(userId, xp + earnExp + bonusExp);
     console.log(`user_id: ${userId}, 獲得XP(計): ${earnExp + bonusExp}, 内訳(ボーナス対象外): ${earnExp}, 内訳(ボーナス対象): ${bonusExp}`);
-}
+};
