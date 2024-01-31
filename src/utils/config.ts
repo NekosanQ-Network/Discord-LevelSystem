@@ -13,6 +13,7 @@ export interface Config {
     generalGuildId: string;
     botColor: string;
     errorColor: string;
+    roleIds: string[];
 };
 
 // コンフィグファイルを読み込む

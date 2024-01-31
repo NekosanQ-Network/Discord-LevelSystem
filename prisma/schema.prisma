@@ -9,3 +9,9 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model levels {
+  id Int @default(autoincrement()) @id
+  user_id String
+  user_xp Int
+}
