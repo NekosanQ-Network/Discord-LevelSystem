@@ -7,6 +7,8 @@ import { CustomCommand } from "./types/client";
 import cron from "node-cron";
 import { config } from "./utils/config";
 import { deprivationRole } from './level/role.js';
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 // ボーナス受けた回数記録用(メッセージ)
 export const messageBonusMap = new Map<string, number>();
@@ -16,9 +18,6 @@ export const vcBonusMap = new Map<string, number>();
 
 // 稼いだXPを記録
 export const earnedXpMap = new Map<string, number>();
-
-// テストコードです。 経験値を格納するのに使用します。
-export const users = new Map<string, number>();
 
 /**
  * @type {number[]} 経験値獲得のノルマ
@@ -96,19 +95,35 @@ cron.schedule("*/5 * * * *", async () => {
 async function periodicExecution() : Promise<void> {
 	try {
 		const guild = await client.guilds.fetch(config.generalGuildId);
-		for (const user of Array.from(users.keys())) {
-			const xp = users.get(user)!;
-			const get = earnedXpMap.get(user) ? earnedXpMap.get(user)! : 0;
+        const allUsers = await prisma.levels.findMany({
+            select: {
+                user_id: true,
+                user_xp: true
+            },
+        });
 
-			const _roles = (await guild.members.fetch(user)).roles;
+		for (const user of allUsers) {
+			const xp = user.user_xp;
+			const id = user.user_id;
+			const get = earnedXpMap.get(id) ? earnedXpMap.get(id)! : 0;
+
+			const _roles = (await guild.members.fetch(id)).roles;
 			for (let i = 0; i < levelsNorma.length; i++) {
 				if (levelsNorma[i] > get && _roles.cache.has(roles[i])) {
-					const decrease = levelsNorma[i] - get; // 目標 - 本日獲得分 = 減らすXP
-					users.set(user, xp - decrease);
-					await deprivationRole(user, roles[i], guild, users.get(user)!);
+					const decrease = levelsNorma[i] - get;
+					await prisma.levels.updateMany({
+						where: {
+							user_id: id
+						},
+		
+						data: {
+							user_xp: xp - decrease
+						}
+					});
 
-					console.log(`user_id: ${user}, 元xp: ${xp}, 減らす: ${decrease}, 減らしたあと:${xp - decrease}`);
-				};
+					await deprivationRole(id, roles[i], guild, xp - decrease);
+					console.log(`user_id: ${id}, 元xp: ${xp}, 減らす: ${decrease}, 減らしたあと:${xp - decrease}`);
+				}
 			}
 		}
 

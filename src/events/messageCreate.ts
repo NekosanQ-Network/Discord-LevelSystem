@@ -1,6 +1,8 @@
 import { Events, Message } from 'discord.js';
 import { grantRole } from '../level/role.js';
-import { users, earnedXpMap, messageBonusMap  } from "../index.js";
+import { earnedXpMap, messageBonusMap  } from "../index.js";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 const coolDownMap = new Map<string, number>();
 
@@ -20,16 +22,43 @@ module.exports = {
             return;
         };
 
-        const xp: number | undefined = users.get(message.author.id);  // <-- テストコード。 自分が持っている経験値
-        if (!xp) {
-            users.set(message.author.id, 1);
-            grantXP(message, users.get(message.author.id)! - 1, 0, true);
-        } else {
+        const allUsers = await prisma.levels.findMany({
+            select: {
+                user_id: true,
+                user_xp: true
+            },
+            
+            where: {
+                user_id: message.author.id
+            }
+        });
+
+        let xp: number = 0;
+        if (allUsers[0]) { // 更新
             if (messageBonusMap.get(message.author.id)! >= 10) {
-                grantXP(message, xp, 0, false);
+                xp = grantXP(message, allUsers[0].user_xp, 0, false);
             } else {
-                grantXP(message, xp, messageBonusMap.get(message.author.id) ? messageBonusMap.get(message.author.id)! : 0, true);
+                xp = grantXP(message, allUsers[0].user_xp, messageBonusMap.get(message.author.id) ? messageBonusMap.get(message.author.id)! : 0, true);
             };
+
+            await prisma.levels.updateMany({
+                where: {
+                    user_id: String(message.author.id)
+                },
+
+                data: {
+                    user_xp: allUsers[0].user_xp + xp
+                }
+            });
+        } else { // 新規作成
+            xp = grantXP(message, 0, 0, true);
+
+            await prisma.levels.create({
+                data: {
+                    user_id: String(message.author.id),
+                    user_xp: xp
+                }
+            });
         };
 
         coolDownMap.set(message.author.id, now); // NOTE: クールダウンの処理 5秒
@@ -46,7 +75,7 @@ module.exports = {
  * @param bonusCount ボーナスを受けた回数
  * @param isBonus ボーナスを付与するか？
  */
-function grantXP(message: Message, xp: number, bonusCount: number, isBonus: boolean) : void {
+function grantXP(message: Message, xp: number, bonusCount: number, isBonus: boolean) : number {
     let earnExp: number = Math.floor(Math.random() * 20) + 1;   // 獲得経験値。 1 - 20
     earnExp = isBonus ? earnExp * 5 : earnExp;                  // ボーナス有効時は5倍
     
@@ -58,9 +87,8 @@ function grantXP(message: Message, xp: number, bonusCount: number, isBonus: bool
     const earnedEXP : number | undefined = earnedXpMap.get(message.author.id); // その日稼いだ経験値
     earnedXpMap.set(message.author.id, (earnedEXP ? earnedEXP : 0) + earnExp);
 
-    users.set(message.author.id, xp + earnExp);
     grantRole(message, xp);
-
     console.log(`${message.author.id} の今日獲得したXP: ${earnedXpMap.get(message.author.id)!}`)
-    console.log(`${message.author.id} の現在持っているXP: ${xp + earnExp}`);
+
+    return earnExp;
 };
