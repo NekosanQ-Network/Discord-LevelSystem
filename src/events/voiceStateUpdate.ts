@@ -72,7 +72,7 @@ module.exports = {
     }
 };
 /**
- * 
+ * 経験値を付与します。
  * @param userId 実行ユーザーID
  * @param joinedTime VC参加時刻(UNIX Time)
  * @param leftTime  VC離脱時刻(UNIX Time)
