@@ -10,21 +10,35 @@ import { deprivationRole } from './level/role.js';
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-// ボーナス受けた回数記録用(メッセージ)
+/** 
+ * ボーナス受けた回数記録用(メッセージ)
+ * @type {string} ユーザーID
+ * @type {number} ボーナス回数
+ */ 
 export const messageBonusMap = new Map<string, number>();
 
-// ボーナスを受けた回数記録用(ボイス)
+/** 
+ *  ボーナスを受けた回数記録用(ボイス)
+ * @type {string} ユーザーID
+ * @type {number} ボーナス回数
+ */
 export const vcBonusMap = new Map<string, number>();
 
-// 稼いだXPを記録
+/**
+ * 今日稼いだ経験値
+ *  @type {string} ユーザーID
+ *  @type {number} 今日稼いだ経験値
+ */
 export const earnedXpMap = new Map<string, number>();
 
 /**
+ * 経験値獲得ノルマ
  * @type {number[]} 経験値獲得のノルマ
  */
 const levelsNorma: number[] = [10000, 5000, 2500];
 
 /**
+ * 使う役職
  * @type {string[]} 使用する役職
 */
 const roles : string[] = config.roleIds.slice(2, 5).reverse();

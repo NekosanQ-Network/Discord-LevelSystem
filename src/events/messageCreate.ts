@@ -4,8 +4,11 @@ import { earnedXpMap, messageBonusMap  } from "../index.js";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
+/**
+ * @type {string} ユーザーID
+ * @type {number} クールダウン開始時刻
+ */
 const coolDownMap = new Map<string, number>();
-
 // -----------------------------------------------------------------------------------------------------------
 // メッセージ処理
 // -----------------------------------------------------------------------------------------------------------
@@ -69,7 +72,7 @@ module.exports = {
     }
 };
 /**
- * 
+ * 経験値を付与します。
  * @param message メッセージデータ
  * @param xp 実行ユーザー経験値
  * @param bonusCount ボーナスを受けた回数

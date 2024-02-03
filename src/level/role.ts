@@ -2,6 +2,7 @@ import { Guild, Message } from "discord.js";
 import { config } from "../utils/config";
 
 /**
+ * 役職がもらえる基準
  * @type {number[]} 基準となるレベル
  */
 const levels :number[] = [1000000, 500000, 200000, 50000, 100];
