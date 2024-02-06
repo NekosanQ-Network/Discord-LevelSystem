@@ -5,7 +5,7 @@ import { config } from "../utils/config";
  * 役職がもらえる基準
  * @type {number[]} 基準となるレベル
  */
-const levels :number[] = [1000000, 500000, 200000, 50000, 100];
+const levels: number[] = [1000000, 500000, 200000, 50000, 100];
 
 /**
  * 実行ユーザーの経験値が一定基準を満たしたとき、それに応じた役職を付与する
@@ -27,7 +27,7 @@ export async function grantRole(message: Message, xp: number) : Promise<void> {
             member?.roles.add(roles[i]);
             break;
         };
-    }
+    };
 };
 
 /**

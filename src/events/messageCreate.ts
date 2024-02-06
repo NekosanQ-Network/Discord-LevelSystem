@@ -1,6 +1,6 @@
 import { Events, Message } from 'discord.js';
 import { grantRole } from '../level/role.js';
-import { earnedXpMap, messageBonusMap  } from "../index.js";
+import { earnedXpMap, messageBonusMap  } from "../module/file/periodicExecution.js";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
@@ -30,7 +30,6 @@ module.exports = {
                 user_id: true,
                 user_xp: true
             },
-            
             where: {
                 user_id: message.author.id
             }
@@ -79,7 +78,7 @@ module.exports = {
  * @param isBonus ボーナスを付与するか？
  */
 function grantXP(message: Message, xp: number, bonusCount: number, isBonus: boolean) : number {
-    let earnExp: number = Math.floor(Math.random() * 20) + 1;   // 獲得経験値。 1 - 20
+    let earnExp: number = Math.floor(Math.random() * 20) + 1 * 1000;   // 獲得経験値。 1 - 20
     earnExp = isBonus ? earnExp * 5 : earnExp;                  // ボーナス有効時は5倍
     
     if (isBonus) {
@@ -87,7 +86,7 @@ function grantXP(message: Message, xp: number, bonusCount: number, isBonus: bool
         console.log(`[ボーナステスト] user_id=${message.author.id} 回数更新, 現在: ${messageBonusMap.get(message.author.id)}`);
     };
 
-    const earnedEXP : number | undefined = earnedXpMap.get(message.author.id); // その日稼いだ経験値
+    const earnedEXP: number | undefined = earnedXpMap.get(message.author.id); // その日稼いだ経験値
     earnedXpMap.set(message.author.id, (earnedEXP ? earnedEXP : 0) + earnExp);
 
     grantRole(message, xp);

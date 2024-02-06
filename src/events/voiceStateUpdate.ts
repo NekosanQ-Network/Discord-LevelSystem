@@ -1,5 +1,5 @@
 import { Events, VoiceState } from "discord.js";
-import { vcBonusMap, earnedXpMap } from "..";
+import { vcBonusMap, earnedXpMap } from "../module/file/periodicExecution";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
@@ -23,12 +23,11 @@ module.exports = {
                 user_id: true,
                 user_xp: true
             },
-            
             where: {
                 user_id: userId
             }
         });
-
+        console.log(vcConnectTimeMap);
         try {
             if (oldState.channel === null && newState.channel != null) {
                 vcConnectTimeMap.set(userId, unixTimeStamp);
@@ -53,7 +52,6 @@ module.exports = {
                     where: {
                         user_id: userId
                     },
-    
                     data: {
                         user_xp: allUsers[0].user_xp + xp
                     }
