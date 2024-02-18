@@ -2,6 +2,7 @@ import { config } from "../../utils/config";
 import { deprivationRole } from '../../level/role.js';
 import { PrismaClient } from "@prisma/client";
 import { Client } from "discord.js";
+import { vcConnectTimeMap, grantXP } from "../../events/voiceStateUpdate.js";
 const prisma = new PrismaClient();
 
 /** 
@@ -14,7 +15,7 @@ export const messageBonusMap = new Map<string, number>();
 /** 
  *  ボーナスを受けた回数記録用(ボイス)
  * @type {string} ユーザーID
- * @type {number} ボーナス回数
+ * @type {number} 残りボーナス(XP)
  */
 export const vcBonusMap = new Map<string, number>();
 
@@ -52,6 +53,8 @@ export async function periodicExecution(client: Client): Promise<void> {
             },
         });
 
+        const now = new Date();
+        const unixTimeStamp = Math.floor(now.getTime() / 1000);
         for (const user of allUsers) {
             const xp = user.user_xp;
             const id = user.user_id;
@@ -73,6 +76,22 @@ export async function periodicExecution(client: Client): Promise<void> {
                     await deprivationRole(id, roles[i], guild, xp - decrease);
                     console.log(`user_id: ${id}, 元xp: ${xp}, 減らす: ${decrease}, 減らしたあと:${xp - decrease}`);
                 }
+            }
+
+            const vcUser: number | undefined = vcConnectTimeMap.get(id);
+            if (vcUser) {
+                const user = await prisma.levels.findMany({
+                    select: {
+                        user_id: true,
+                        user_xp: true
+                    },
+
+                    where: {
+                        user_id: id
+                    }
+                });
+
+                grantXP(id, vcUser, unixTimeStamp, user[0].user_xp, true);
             }
         }
 
