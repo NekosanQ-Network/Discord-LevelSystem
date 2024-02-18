@@ -78,6 +78,7 @@ export async function periodicExecution(client: Client): Promise<void> {
                 }
             }
 
+            // リセット処理時にVCにいる場合、経験値を与える
             const vcUser: number | undefined = vcConnectTimeMap.get(id);
             if (vcUser) {
                 const user = await prisma.levels.findMany({
@@ -92,6 +93,9 @@ export async function periodicExecution(client: Client): Promise<void> {
                 });
 
                 grantXP(id, vcUser, unixTimeStamp, user[0].user_xp, true);
+
+                vcConnectTimeMap.delete(id);
+                vcConnectTimeMap.set(id, unixTimeStamp);
             }
         }
 
