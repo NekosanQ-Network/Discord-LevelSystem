@@ -15,7 +15,7 @@ export const messageBonusMap = new Map<string, number>();
 /** 
  *  ボーナスを受けた回数記録用(ボイス)
  * @type {string} ユーザーID
- * @type {number} 残りボーナス(XP)
+ * @type {number} 合計接続時間(秒)
  */
 export const vcBonusMap = new Map<string, number>();
 
