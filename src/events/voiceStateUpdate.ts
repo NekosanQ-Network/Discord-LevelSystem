@@ -35,18 +35,18 @@ module.exports = {
         const isBonus = vcBonusMap.get(userId) ? vcBonusMap.get(userId)! < 600 : true; // ボーナス適用するか (初接続 or 600s未満だったら、true)
 
         try {
-            if (oldState?.channel === null && newState?.channel !=  null) {
+            if (oldState?.channel === null && newState?.channel !=  null) { // 入った
                 vcConnectTimeMap.set(userId, unixTimeStamp);
                 console.log(`[VC接続] user_id: ${userId}, unixTimeStamp(JoinedTime): ${unixTimeStamp}`);
-            } else if (oldState?.channel != null && newState?.channel === null) {
+            } else if (oldState?.channel != null && newState?.channel === null) { // 抜けた
                 grantXP(userId, vcConnectTime, unixTimeStamp, isBonus);
                 vcConnectTimeMap.delete(userId);
-            } else if (oldState?.channel != null && newState?.channel != null) {
+            } else if (oldState?.channel != null && newState?.channel != null) { // 移動
                 grantXP(userId, vcConnectTime, unixTimeStamp, isBonus);
                 vcConnectTimeMap.delete(userId);
             }
 
-            if (user[0]) {
+            if (user[0]) { // データある
                 await prisma.levels.updateMany({
                     where: { user_id: userId },
                     data: { user_xp: user[0].user_xp + xp }
@@ -60,7 +60,7 @@ module.exports = {
                 });
             }
 
-            grantRole(userId, guild, user[0].user_xp + xp);
+            grantRole(userId, guild, user[0].user_xp + xp); // 役職付与
         } catch (error) {
             console.log(error);
         }
