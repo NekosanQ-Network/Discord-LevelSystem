@@ -16,6 +16,7 @@ module.exports = {
     name: Events.MessageCreate,
     async execute(message: Message): Promise<void> {
         if (message.author.bot) return;
+        if (message.guild === null) return; // 実行場所がサーバーでなかったら無視
 
         const now = Date.now();
         const coolDownNow = coolDownMap.get(message.author.id);
@@ -63,6 +64,8 @@ module.exports = {
             });
         };
 
+        grantRole(message.author.id, message.guild!, allUsers[0].user_xp + xp);
+
         coolDownMap.set(message.author.id, now); // NOTE: クールダウンの処理 5秒
         setTimeout(() => {
             coolDownMap.delete(message.author.id);
@@ -89,7 +92,6 @@ function grantXP(message: Message, xp: number, bonusCount: number, isBonus: bool
     const earnedEXP: number | undefined = earnedXpMap.get(message.author.id); // その日稼いだ経験値
     earnedXpMap.set(message.author.id, (earnedEXP ? earnedEXP : 0) + earnExp);
 
-    grantRole(message, xp);
     console.log(`${message.author.id} の今日獲得したXP: ${earnedXpMap.get(message.author.id)!}`)
 
     return earnExp;
