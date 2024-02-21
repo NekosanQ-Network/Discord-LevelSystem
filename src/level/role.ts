@@ -49,6 +49,6 @@ export async function deprivationRole(userId: string, roleId: string, guild: Gui
     for (let i = 0; i < levels.length; i++) {
         if (levels[i] > xp && member?.roles.cache.has(roleId)) {
             member?.roles.remove(roleId);
-        };
+        }
     }
 };
