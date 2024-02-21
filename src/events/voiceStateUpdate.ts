@@ -78,7 +78,10 @@ export function grantXP(userId: string, joinedTime: number, leftTime: number, is
     const connectionTime = leftTime - joinedTime; // 接続時間
     const maxConnectionTime = 600; // 最大接続時間
 
-    let  vcBonus = vcBonusMap.get(userId) || 0;
+    if  (joinedTime == 0) // 抜けたときに joinedTimeが記録されていないとき
+        return 0;
+
+    let vcBonus = vcBonusMap.get(userId) || 0;
     vcBonus += Math.min(connectionTime, maxConnectionTime);
     vcBonusMap.set(userId, vcBonus); // 接続時間更新
 
