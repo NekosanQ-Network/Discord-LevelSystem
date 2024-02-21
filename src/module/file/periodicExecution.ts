@@ -1,7 +1,7 @@
 import { config } from "../../utils/config";
 import { deprivationRole } from '../../level/role.js';
 import { PrismaClient } from "@prisma/client";
-import { Client } from "discord.js";
+import { Client, userMention } from "discord.js";
 import { vcConnectTimeMap, grantXP } from "../../events/voiceStateUpdate.js";
 const prisma = new PrismaClient();
 
@@ -37,75 +37,76 @@ const levelsNorma: number[] = [10000, 5000, 2500];
  * @type {string[]} 使用する役職
 */
 const roles : string[] = config.roleIds.slice(2, 5).reverse();
-// -----------------------------------------------------------------------------------------------------------
-// XP減少 / 役職剥奪 / ボーナス回数, その日稼いだXP記録 リセット
-// -----------------------------------------------------------------------------------------------------------
+
 /**
+ * XP減少 / 役職剥奪 / ボーナス回数, その週稼いだXP記録 リセット
  * @param client クライアント
  */
 export async function periodicExecution(client: Client): Promise<void> {
     try {
         const guild = await client.guilds.fetch(config.generalGuildId);
-        const allUsers = await prisma.levels.findMany({
+        const users = await prisma.levels.findMany({
             select: {
                 user_id: true,
                 user_xp: true
-            },
+            }
         });
 
         const now = new Date();
         const unixTimeStamp = Math.floor(now.getTime() / 1000);
-        for (const user of allUsers) {
-            const xp = user.user_xp;
-            const id = user.user_id;
-            const get = earnedXpMap.get(id) ? earnedXpMap.get(id)! : 0;
 
-            const _roles = (await guild.members.fetch(id)).roles;
-            for (let i = 0; i < levelsNorma.length; i++) {
-                if (levelsNorma[i] > get && _roles.cache.has(roles[i])) {
-                    const decrease = levelsNorma[i] - get;
-                    await prisma.levels.updateMany({
-                        where: {
-                            user_id: id
-                        },
-                        data: {
-                            user_xp: xp - decrease
-                        }
-                    });
+        for (const user of users) {
+            const xp: number = user.user_xp;
+            const id: string = user.user_id;
+            const get: number = earnedXpMap.get(id) || 0; // 取得分(week) が見つからない場合は0をいれる。
 
+            const rolesAtMe = (await guild.members.fetch(id)).roles; // そのユーザーが持っている役職をすべて取得する
+            for (let i = 0; i < levelsNorma.length; ) {
+                if (levelsNorma[i] > get && rolesAtMe.cache.has(roles[i])) { // ノルマ未達成
+                    const decrease = levelsNorma[i] - get; // ノルマ - 獲得
+                    await updateXP(id, xp - decrease);
                     await deprivationRole(id, roles[i], guild, xp - decrease);
                     console.log(`user_id: ${id}, 元xp: ${xp}, 減らす: ${decrease}, 減らしたあと:${xp - decrease}`);
                 }
             }
 
-            // リセット処理時にVCにいる場合、経験値を与える
-            const vcUser: number | undefined = vcConnectTimeMap.get(id);
-            if (vcUser) {
-                const user = await prisma.levels.findMany({
-                    select: {
-                        user_id: true,
-                        user_xp: true
-                    },
+            const vcUser = vcConnectTimeMap.get(id);
+            if (vcUser) { // VC接続中
+                const isBonus = vcBonusMap.get(id) ? vcBonusMap.get(id)! < 600 : true; // ボーナス適用するか (初接続 or 600s未満だったら、true)
+                const xp = grantXP(id, vcUser, unixTimeStamp, isBonus);
 
-                    where: {
-                        user_id: id
-                    }
-                });
+                const user = await prisma.levels.findFirst({
+                    select: { user_xp: true },
+                    where: { user_id: id }
+                })
 
-                grantXP(id, vcUser, unixTimeStamp, user[0].user_xp, true);
-
-                vcConnectTimeMap.delete(id);
-                vcConnectTimeMap.set(id, unixTimeStamp);
+                await updateXP(id, user?.user_xp || 0 + xp);
+                vcConnectTimeMap.set(id, unixTimeStamp); // 接続開始時間更新
             }
         }
 
         // リセット
-        messageBonusMap.clear();	// メッセーじ
+        messageBonusMap.clear();	// メッセージ
         vcBonusMap.clear();			// VC
         earnedXpMap.clear();		// その日稼いだXP
         console.log(`リセットした！`);
-    }
-    catch (ex) {
+    } catch (ex) {
         console.log(ex);
     }
 };
+
+/**
+ * 経験値更新処理
+ * @param userId 対象ユーザー
+ * @param xp 更新経験値
+ */
+async function updateXP(userId: string, xp: number) {
+    await prisma.levels.updateMany({
+        where: {
+            user_id: userId
+        },
+        data: {
+            user_xp: xp
+        }
+    });
+}
