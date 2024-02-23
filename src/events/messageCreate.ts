@@ -81,7 +81,7 @@ module.exports = {
  * @param isBonus ボーナスを付与するか？
  */
 function grantXP(message: Message, xp: number, bonusCount: number, isBonus: boolean) : number {
-    let earnExp: number = Math.floor(Math.random() * 20) + 1 * 1000;   // 獲得経験値。 1 - 20
+    let earnExp: number = Math.floor(Math.random() * 20) + 1;   // 獲得経験値。 1 - 20
     earnExp = isBonus ? earnExp * 5 : earnExp;                  // ボーナス有効時は5倍
     
     if (isBonus) {
