@@ -1,8 +1,8 @@
 import { config } from "../../utils/config";
-import { deprivationRole } from '../../level/role.js';
+import { deprivationRole } from '../../level/role';
 import { PrismaClient } from "@prisma/client";
-import { Client, userMention } from "discord.js";
-import { vcConnectTimeMap, grantXP } from "../../events/voiceStateUpdate.js";
+import { Client } from "discord.js";
+import { grantXP } from "../../level/grantXP";
 const prisma = new PrismaClient();
 
 /** 
@@ -25,6 +25,14 @@ export const vcBonusMap = new Map<string, number>();
  *  @type {number} 今日稼いだ経験値
  */
 export const earnedXpMap = new Map<string, number>();
+
+/**
+ *  ボイスチャンネル滞在
+ * 
+    @type {string} ユーザーId
+    @type {number} 接続した時間(UNIX TIME)
+*/
+export const vcConnectTimeMap = new Map<string, number>();
 
 /**
  * 経験値獲得ノルマ
@@ -61,28 +69,33 @@ export async function periodicExecution(client: Client): Promise<void> {
             const get: number = earnedXpMap.get(id) || 0; // 取得分(week) が見つからない場合は0をいれる。
 
             const rolesAtMe = (await guild.members.fetch(id)).roles; // そのユーザーが持っている役職をすべて取得する
-            for (let i = 0; i < levelsNorma.length; ) {
+
+            for (let i = 0; i < levelsNorma.length; i++) {
                 if (levelsNorma[i] > get && rolesAtMe.cache.has(roles[i])) { // ノルマ未達成
                     const decrease = levelsNorma[i] - get; // ノルマ - 獲得
                     await updateXP(id, xp - decrease);
                     await deprivationRole(id, roles[i], guild, xp - decrease);
                     console.log(`user_id: ${id}, 元xp: ${xp}, 減らす: ${decrease}, 減らしたあと:${xp - decrease}`);
+                    break;
                 }
             }
 
-            const vcUser = vcConnectTimeMap.get(id);
+            const vcUser: number | undefined = vcConnectTimeMap.get(id);
             if (vcUser) { // VC接続中
+                console.log(`user_id: ${id} VC レベル更新`);
+
                 const isBonus = vcBonusMap.get(id) ? vcBonusMap.get(id)! < 600 : true; // ボーナス適用するか (初接続 or 600s未満だったら、true)
                 const xp = grantXP(id, vcUser, unixTimeStamp, isBonus);
 
                 const user = await prisma.levels.findFirst({
                     select: { user_xp: true },
                     where: { user_id: id }
-                })
+                });
 
-                await updateXP(id, user?.user_xp || 0 + xp);
+                await updateXP(id, user?.user_xp || 0 + xp!);
                 vcConnectTimeMap.set(id, unixTimeStamp); // 接続開始時間更新
-            }
+            } else 
+                console.log(`user_id: ${id} VC レベル更新なし`);
         }
 
         // リセット
