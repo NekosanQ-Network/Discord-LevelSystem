@@ -1,5 +1,7 @@
 import { Events, Client } from "discord.js";
 import { logger } from "../utils/log";
+import { executePeriodically } from "../guildProcess/periodically";
+
 // -----------------------------------------------------------------------------------------------------------
 // 起動処理
 // -----------------------------------------------------------------------------------------------------------
@@ -8,6 +10,9 @@ module.exports = {
 	once: false,
 	execute(client: Client) {
 		const date = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+
+		executePeriodically(client);
+
 		setInterval(() => {
 			client.user?.setActivity({
 				name: `/ | ${client.ws.ping}ms | 最終更新: ${date}`
