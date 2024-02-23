@@ -17,45 +17,35 @@ module.exports = {
     name: Events.MessageCreate,
     async execute(message: Message): Promise<void> {
         if (message.author.bot) return;
-        if (message.guild === null) return; // 実行場所がサーバーでなかったら無視
+        if (message.guild === null) return; // NOTE: 実行場所がサーバーでなかったら無視
 
         const now = Date.now();
         const coolDownNow = coolDownMap.get(message.author.id);
 
-        if (coolDownNow) {
-            console.log(`[クールダウンテスト] user_id=${message.author.id}, クールダウン中`);
+        if (coolDownNow) // NOTE: クールダウン中
             return;
-        };
 
-        const allUsers = await prisma.levels.findMany({
-            select: {
+        let xp: number = 0;
+        const user = await prisma.levels.findFirst({
+           select: {
                 user_id: true,
                 user_xp: true
             },
-            where: {
-                user_id: message.author.id
-            }
+            where: { user_id: message.author.id }
         });
 
-        let xp: number = 0;
-        if (allUsers[0]) { // 更新
-            if (messageBonusMap.get(message.author.id)! >= 10) {
-                xp = grantXP(message, allUsers[0].user_xp, 0, false);
-            } else {
-                xp = grantXP(message, allUsers[0].user_xp, messageBonusMap.get(message.author.id) ? messageBonusMap.get(message.author.id)! : 0, true);
-            };
+        if (user) { // 更新
+            const boostCount = messageBonusMap.get(message.author.id) || 0;
+            const isBoosting = boostCount < 10; // ブースト回数 10回以下でtrue
+
+            xp = grantXP(message.author.id, user.user_xp, boostCount, isBoosting);
 
             await prisma.levels.updateMany({
-                where: {
-                    user_id: String(message.author.id)
-                },
-
-                data: {
-                    user_xp: allUsers[0].user_xp + xp
-                }
+                where: { user_id: String(message.author.id) },
+                data: { user_xp: user.user_xp + xp }
             });
         } else { // 新規作成
-            xp = grantXP(message, 0, 0, true);
+            xp = grantXP(message.author.id, 0, 0, true);
 
             await prisma.levels.create({
                 data: {
@@ -63,38 +53,36 @@ module.exports = {
                     user_xp: xp
                 }
             });
-        };
+        }
 
-        grantRole(message.author.id, message.guild!, allUsers[0].user_xp + xp);
-
+        grantRole(message.author.id, message.guild!, user!.user_xp + xp);
         coolDownMap.set(message.author.id, now); // NOTE: クールダウンの処理 5秒
+
         setTimeout(() => {
             coolDownMap.delete(message.author.id);
-            console.log(`[クールダウンテスト] user_id=${message.author.id} 解除`)
         }, 5000);
     }
 };
 
 /**
  * 経験値を付与します。
- * @param message メッセージデータ
+ * @param userId ユーザーId
  * @param xp 実行ユーザー経験値
- * @param bonusCount ボーナスを受けた回数
- * @param isBonus ボーナスを付与するか？
+ * @param boostCount ブースト回数
+ * @param isBoosting ブースト有効の可否
  */
-function grantXP(message: Message, xp: number, bonusCount: number, isBonus: boolean) : number {
+function grantXP(userId: string, xp: number, boostCount: number, isBoosting: boolean) : number {
     let earnExp: number = Math.floor(Math.random() * 20) + 1;   // 獲得経験値。 1 - 20
-    earnExp = isBonus ? earnExp * 5 : earnExp;                  // ボーナス有効時は5倍
+    earnExp = isBoosting ? earnExp * 5 : earnExp;               // ブースト有効時は5倍
     
-    if (isBonus) {
-        messageBonusMap.set(message.author.id, bonusCount + 1);
-        console.log(`[ボーナステスト] user_id=${message.author.id} 回数更新, 現在: ${messageBonusMap.get(message.author.id)}`);
-    };
+    if (isBoosting) { // ブースト有効
+        messageBonusMap.set(userId, boostCount + 1);
+        console.log(`[ボーナステスト] user_id=${userId} 回数更新, 現在: ${messageBonusMap.get(userId)}`);
+    }
 
-    const earnedEXP: number | undefined = earnedXpMap.get(message.author.id); // その日稼いだ経験値
-    earnedXpMap.set(message.author.id, (earnedEXP ? earnedEXP : 0) + earnExp);
+    let earnedXp: number = earnedXpMap.get(userId) || 0; // 1週間に稼いだ経験値
+    earnedXpMap.set(userId, earnedXp + earnExp);
 
-    console.log(`${message.author.id} の今日獲得したXP: ${earnedXpMap.get(message.author.id)!}`)
-
+    console.log(`${userId} の今日獲得したXP: ${earnedXpMap.get(userId)!}`)
     return earnExp;
-};
+}
