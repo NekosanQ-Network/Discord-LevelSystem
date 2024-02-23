@@ -43,6 +43,8 @@ module.exports = {
                     where: { user_id: userId },
                     data: { user_xp: user.user_xp + xp }
                 });
+
+                grantRole(userId, guild, user.user_xp + xp); // 役職付与
             } else {
                 await prisma.levels.create({
                     data: {
@@ -50,9 +52,9 @@ module.exports = {
                         user_xp: xp
                     }
                 });
-            }
 
-            grantRole(userId, guild, user!.user_xp + xp); // 役職付与
+                grantRole(userId, guild, xp); // 役職付与
+            }
         } catch (error) {
             console.log(error);
         }

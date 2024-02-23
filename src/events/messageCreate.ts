@@ -44,6 +44,8 @@ module.exports = {
                 where: { user_id: String(message.author.id) },
                 data: { user_xp: user.user_xp + xp }
             });
+
+            grantRole(message.author.id, message.guild, user.user_xp + xp);
         } else { // 新規作成
             xp = grantXP(message.author.id, 0, 0, true);
 
@@ -53,9 +55,10 @@ module.exports = {
                     user_xp: xp
                 }
             });
+
+            grantRole(message.author.id, message.guild, xp);
         }
 
-        grantRole(message.author.id, message.guild!, user!.user_xp + xp);
         coolDownMap.set(message.author.id, now); // NOTE: クールダウンの処理 5秒
 
         setTimeout(() => {
