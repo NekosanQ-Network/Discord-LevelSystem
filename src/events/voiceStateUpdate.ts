@@ -16,7 +16,7 @@ module.exports = {
 
         let xp: number = 0;
 
-        const user = await prisma.levels.findMany({
+        const user = await prisma.levels.findFirst({
             select: {
                 user_id: true,
                 user_xp: true
@@ -38,10 +38,10 @@ module.exports = {
                 vcConnectTimeMap.delete(userId);
             }
 
-            if (user[0]) { // データある
+            if (user) { // データある
                 await prisma.levels.updateMany({
                     where: { user_id: userId },
-                    data: { user_xp: user[0].user_xp + xp }
+                    data: { user_xp: user.user_xp + xp }
                 });
             } else {
                 await prisma.levels.create({
@@ -52,7 +52,7 @@ module.exports = {
                 });
             }
 
-            grantRole(userId, guild, user[0].user_xp + xp); // 役職付与
+            grantRole(userId, guild, user!.user_xp + xp); // 役職付与
         } catch (error) {
             console.log(error);
         }
